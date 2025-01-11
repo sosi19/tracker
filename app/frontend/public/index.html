@@ -3,24 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Encurtador de Links</title>
+    <title>Rastreador de Visitas</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
-        <h1>Encurtador de Links</h1>
+        <h1>Rastreador de Visitas</h1>
         
-        <div class="create-link">
-            <form id="linkForm">
-                <input type="url" id="targetUrl" placeholder="Cole o link aqui" required>
-                <input type="text" id="description" placeholder="Descrição (opcional)">
-                <button type="submit">Encurtar Link</button>
-            </form>
+        <div class="tracking-code">
+            <h2>Código de Rastreamento</h2>
+            <p>Adicione este código ao seu site para começar a rastrear:</p>
+            <pre><code id="trackingCode"></code></pre>
+            <button onclick="copyTrackingCode()">Copiar Código</button>
         </div>
 
-        <div class="links-list">
-            <h2>Seus Links</h2>
-            <div id="linksList"></div>
+        <div class="stats">
+            <h2>Estatísticas</h2>
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <h3>Visitas Totais</h3>
+                    <p id="totalVisits">0</p>
+                </div>
+                <div class="stat-box">
+                    <h3>Navegadores</h3>
+                    <div id="browsers"></div>
+                </div>
+                <div class="stat-box">
+                    <h3>Sistemas Operacionais</h3>
+                    <div id="os"></div>
+                </div>
+                <div class="stat-box">
+                    <h3>Dispositivos</h3>
+                    <div id="devices"></div>
+                </div>
+                <div class="stat-box">
+                    <h3>Países</h3>
+                    <div id="countries"></div>
+                </div>
+            </div>
+
+            <div class="recent-visits">
+                <h3>Visitas Recentes</h3>
+                <div id="recentVisits"></div>
+            </div>
         </div>
     </div>
     <script src="app.js"></script>

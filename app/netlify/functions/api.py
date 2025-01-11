@@ -1,42 +1,106 @@
 from flask import Flask, request, jsonify, redirect
 from flask_serverless import FlaskServerless
 import json
-import os
 from datetime import datetime
-from uuid import uuid4
 import requests
 from user_agents import parse
 from faunadb import query as q
-from fauna_config import get_client, LINKS_COLLECTION, VISITS_COLLECTION
+from fauna_config import get_client, TRACKING_COLLECTION, VISITS_COLLECTION
 
 app = Flask(__name__)
 handler = FlaskServerless(app)
 
-def save_to_fauna(collection, data):
-    client = get_client()
-    result = client.query(
-        q.create(
-            q.collection(collection),
-            {'data': data}
-        )
-    )
-    return result['ref'].id()
-
-def get_from_fauna(collection, ref_id):
+@app.route('/')
+def dashboard():
     client = get_client()
     try:
         result = client.query(
-            q.get(q.ref(q.collection(collection), ref_id))
+            q.map_(
+                lambda x: q.merge(
+                    {'id': q.select(['ref', 'id'], x)},
+                    q.select(['data'], x)
+                ),
+                q.paginate(q.documents(q.collection(TRACKING_COLLECTION)))
+            )
         )
-        return result['data']
-    except:
-        return None
+        return jsonify(result['data'])
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
-def get_real_ip(event):
-    headers = event.get('headers', {})
-    if headers.get('x-forwarded-for'):
-        return headers['x-forwarded-for'].split(',')[0]
-    return headers.get('client-ip', 'unknown')
+@app.route('/track', methods=['POST'])
+def track():
+    try:
+        data = json.loads(request.data)
+        
+        # Coletar dados do visitante
+        ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+        user_agent_string = request.headers.get('User-Agent')
+        user_agent = parse(user_agent_string)
+        
+        tracking_data = {
+            'timestamp': datetime.now().isoformat(),
+            'ip': ip,
+            'browser': user_agent.browser.family,
+            'browser_version': user_agent.browser.version_string,
+            'os': user_agent.os.family,
+            'os_version': user_agent.os.version_string,
+            'device': user_agent.device.family,
+            'geolocation': get_geolocation(ip),
+            'page_url': data.get('page_url'),
+            'referrer': data.get('referrer'),
+            'user_data': data.get('user_data', {})
+        }
+        
+        client = get_client()
+        result = client.query(
+            q.create(
+                q.collection(TRACKING_COLLECTION),
+                {'data': tracking_data}
+            )
+        )
+        
+        return jsonify({
+            'success': True,
+            'tracking_id': result['ref'].id()
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/stats', methods=['GET'])
+def get_stats():
+    client = get_client()
+    try:
+        result = client.query(
+            q.map_(
+                lambda x: q.select(['data'], x),
+                q.paginate(
+                    q.documents(q.collection(TRACKING_COLLECTION)),
+                    size=1000
+                )
+            )
+        )
+        
+        visits = result['data']
+        
+        # Análise dos dados
+        stats = {
+            'total_visits': len(visits),
+            'browsers': {},
+            'operating_systems': {},
+            'devices': {},
+            'countries': {},
+            'recent_visits': sorted(visits, key=lambda x: x['timestamp'], reverse=True)[:10]
+        }
+        
+        for visit in visits:
+            stats['browsers'][visit['browser']] = stats['browsers'].get(visit['browser'], 0) + 1
+            stats['operating_systems'][visit['os']] = stats['operating_systems'].get(visit['os'], 0) + 1
+            stats['devices'][visit['device']] = stats['devices'].get(visit['device'], 0) + 1
+            stats['countries'][visit['geolocation']['country']] = stats['countries'].get(visit['geolocation']['country'], 0) + 1
+        
+        return jsonify(stats)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 def get_geolocation(ip):
     try:
@@ -56,95 +120,38 @@ def get_geolocation(ip):
             'longitude': None
         }
 
-@app.route('/links', methods=['GET'])
-def get_links():
-    client = get_client()
+@app.route('/setup', methods=['GET'])
+def setup():
     try:
-        result = client.query(
-            q.map_(
-                lambda x: q.merge(
-                    {'id': q.select(['ref', 'id'], x)},
-                    q.select(['data'], x)
-                ),
-                q.paginate(q.documents(q.collection(LINKS_COLLECTION)))
-            )
-        )
-        return jsonify(result['data'])
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/create_link', methods=['POST'])
-def create_link():
-    try:
-        data = json.loads(request.body)
-        link_data = {
-            'target_url': data['target_url'],
-            'description': data.get('description', ''),
-            'created_at': datetime.now().isoformat(),
-            'visits': 0
-        }
+        client = get_client()
         
-        link_id = save_to_fauna(LINKS_COLLECTION, link_data)
-        return jsonify({'success': True, 'link_id': link_id})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/l/<link_id>', methods=['GET'])
-def redirect_link(link_id):
-    client = get_client()
-    try:
-        # Buscar link
-        link = get_from_fauna(LINKS_COLLECTION, link_id)
-        if not link:
-            return "Link não encontrado", 404
+        # Criar coleções
+        try:
+            client.query(q.create_collection({'name': TRACKING_COLLECTION}))
+            client.query(q.create_collection({'name': VISITS_COLLECTION}))
+        except:
+            pass
             
-        # Incrementar contador de visitas
-        client.query(
-            q.update(
-                q.ref(q.collection(LINKS_COLLECTION), link_id),
-                {'data': {'visits': link['visits'] + 1}}
+        # Criar índices
+        try:
+            client.query(
+                q.create_index({
+                    'name': 'all_tracking',
+                    'source': q.collection(TRACKING_COLLECTION)
+                })
             )
-        )
-        
-        # Registrar visita
-        visit_data = {
-            'link_id': link_id,
-            'timestamp': datetime.now().isoformat(),
-            'ip': get_real_ip(request.event),
-            'user_agent': request.headers.get('User-Agent'),
-            'geolocation': get_geolocation(get_real_ip(request.event))
-        }
-        save_to_fauna(VISITS_COLLECTION, visit_data)
-        
-        return redirect(link['target_url'])
-    except Exception as e:
-        return str(e), 500
-
-@app.route('/stats/<link_id>', methods=['GET'])
-def get_stats(link_id):
-    client = get_client()
-    try:
-        # Buscar link
-        link = get_from_fauna(LINKS_COLLECTION, link_id)
-        if not link:
-            return "Link não encontrado", 404
+        except:
+            pass
             
-        # Buscar visitas
-        visits = client.query(
-            q.map_(
-                lambda x: q.select(['data'], x),
-                q.paginate(
-                    q.match(q.index('visits_by_link'), link_id)
-                )
-            )
-        )
-        
         return jsonify({
-            'link': link,
-            'visits': visits['data']
+            'success': True,
+            'message': 'Database setup completed successfully'
         })
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 def handler(event, context):
     return handler.handle(event, context) 

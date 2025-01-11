@@ -1,0 +1,8 @@
+{
+  "name": "link-tracker",
+  "version": "1.0.0",
+  "description": "Link tracking application",
+  "dependencies": {
+    "@netlify/functions": "^1.6.0"
+  }
+} 

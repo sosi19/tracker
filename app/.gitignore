@@ -1,4 +1,9 @@
 .env
 __pycache__/
 *.pyc
-.netlify 
+.netlify
+node_modules/
+.vscode/
+.DS_Store
+*.log
+data/ 

@@ -1,16 +1,19 @@
 [build]
-  command = "pip install -r requirements.txt"
+  command = "pip install -r netlify/functions/requirements.txt"
   functions = "netlify/functions"
   publish = "frontend/public"
 
-[[redirects]]
-  from = "/l/*"
-  to = "/.netlify/functions/api/l/:splat"
-  status = 200
+[functions]
+  external_node_modules = ["flask", "faunadb"]
 
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/api/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/l/*"
+  to = "/.netlify/functions/api/l/:splat"
   status = 200
 
 [[redirects]]
