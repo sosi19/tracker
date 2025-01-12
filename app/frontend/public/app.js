@@ -1,4 +1,4 @@
-const API_URL = '/api';
+const API_URL = '/.netlify/functions/api';
 
 // Código de rastreamento que será fornecido aos usuários
 const trackingCode = `<script>
@@ -88,13 +88,15 @@ async function testAPI() {
         });
         clearTimeout(timeoutId);
 
+        console.log('Status da resposta:', response.status);
+        const responseText = await response.text();
+        console.log('Texto da resposta:', responseText);
+
         if (!response.ok) {
-            const text = await response.text();
-            console.error('Resposta da API:', text);
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const data = await response.json();
+        const data = JSON.parse(responseText);
         console.log('Teste API:', data);
         alert(data.message || 'API respondeu com sucesso!');
     } catch (error) {

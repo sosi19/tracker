@@ -6,6 +6,7 @@ app = Flask(__name__)
 
 @app.route('/test')
 def test():
+    print("Rota /test acessada")  # Log para debug
     return jsonify({
         'success': True,
         'message': 'API está funcionando'
@@ -13,6 +14,7 @@ def test():
 
 @app.route('/test-db')
 def test_db():
+    print("Rota /test-db acessada")  # Log para debug
     try:
         client = get_client()
         result = client.query(

@@ -1,5 +1,5 @@
 [build]
-  command = "pip install -r netlify/functions/requirements.txt -t netlify/functions/"
+  command = "pip install -r netlify/functions/api/requirements.txt -t netlify/functions/api/"
   functions = "netlify/functions"
   publish = "frontend/public"
 
@@ -7,17 +7,13 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
-[functions.api]
-  included_files = ["netlify/functions/**"]
-
 [[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/api/:splat"
+  from = "/.netlify/functions/api/*"
+  to = "/.netlify/functions/api"
   status = 200
   force = true
 
 [[redirects]]
-  from = "/.netlify/functions/api/*"
-  to = "/.netlify/functions/api/:splat"
-  status = 200
-  force = true 
+  from = "/*"
+  to = "/index.html"
+  status = 200 

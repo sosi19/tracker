@@ -2,5 +2,4 @@ flask==2.0.1
 flask-serverless==0.0.6
 faunadb==4.2.0
 requests==2.26.0
-user-agents==2.2.0
-python-dotenv==0.19.0 
+user-agents==2.2.0 
