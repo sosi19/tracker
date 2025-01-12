@@ -10,41 +10,22 @@
     <div class="container">
         <h1>Rastreador de Visitas</h1>
         
-        <div class="tracking-code">
-            <h2>Código de Rastreamento</h2>
-            <p>Adicione este código ao seu site para começar a rastrear:</p>
-            <pre><code id="trackingCode"></code></pre>
-            <button onclick="copyTrackingCode()">Copiar Código</button>
-        </div>
-
-        <div class="stats">
-            <h2>Estatísticas</h2>
-            <div class="stats-grid">
-                <div class="stat-box">
-                    <h3>Visitas Totais</h3>
-                    <p id="totalVisits">0</p>
-                </div>
-                <div class="stat-box">
-                    <h3>Navegadores</h3>
-                    <div id="browsers"></div>
-                </div>
-                <div class="stat-box">
-                    <h3>Sistemas Operacionais</h3>
-                    <div id="os"></div>
-                </div>
-                <div class="stat-box">
-                    <h3>Dispositivos</h3>
-                    <div id="devices"></div>
-                </div>
-                <div class="stat-box">
-                    <h3>Países</h3>
-                    <div id="countries"></div>
-                </div>
+        <!-- Botão de teste -->
+        <button onclick="testAPI()">Testar API</button>
+        <button onclick="testDB()">Testar Banco de Dados</button>
+        
+        <div class="link-creator">
+            <h2>Criar Link de Redirecionamento</h2>
+            <div class="input-group">
+                <input type="text" id="targetUrl" 
+                       value="https://www.mercadolivre.com.br" 
+                       placeholder="URL de destino">
+                <button onclick="createTrackingLink()">Gerar Link</button>
             </div>
-
-            <div class="recent-visits">
-                <h3>Visitas Recentes</h3>
-                <div id="recentVisits"></div>
+            <div id="linkResult" class="link-result" style="display: none;">
+                <p>Seu link de rastreamento:</p>
+                <input type="text" id="trackingLink" readonly>
+                <button onclick="copyTrackingLink()">Copiar Link</button>
             </div>
         </div>
     </div>
